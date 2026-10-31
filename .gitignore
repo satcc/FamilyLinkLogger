@@ -1,0 +1,48 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Scraper auth profile and temporary artifacts
+scraper/auth_profile/
+scraper/output/
+auth_state.json
+debug_*.html
+*.png
+*.log
+scraper/state.json
+state.json
+*.jsonl
+
+# 収集データ・個人情報（利用実績・氏名・電話番号・契約ID等）
+public/data/*
+!public/data/.gitkeep
+
+# データベース
+*.db
+*.sqlite3
+*.db-journal
+
+# Node / Frontend
+node_modules/
+dist/
+
+# 環境設定（秘密情報）
+.env
+.env.*
+!.env.example
+
+# Firebase
+.firebase/
+.firebaserc
+
+# 開発用メモ・個人情報メモ
+memo.md
+
+# エディタ・OS設定
+.vscode/
+.idea/
+Thumbs.db
+Desktop.ini
+.DS_Store
+
