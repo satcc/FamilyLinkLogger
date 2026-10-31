@@ -13,10 +13,23 @@ export const App: React.FC = () => {
 
   const [currentMonth, setCurrentMonth] = useState<string>(defaultMonth);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+  const [hasInitializedMember, setHasInitializedMember] = useState<boolean>(false);
   const [monthlyData, setMonthlyData] = useState<MonthlyData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState<boolean>(isFirebaseConfigured);
+
+  // 初回データ読み込み時に最初のメンバーをデフォルト選択
+  useEffect(() => {
+    if (monthlyData?.members && !hasInitializedMember) {
+      const memberKeys = Object.keys(monthlyData.members);
+      if (memberKeys.length > 0) {
+        setSelectedMemberId(memberKeys[0]);
+        setHasInitializedMember(true);
+      }
+    }
+  }, [monthlyData, hasInitializedMember]);
 
   // Firebase Auth リッスン
   useEffect(() => {
@@ -85,6 +98,10 @@ export const App: React.FC = () => {
   const handleSelectDate = (dateStr: string) => {
     window.location.hash = dateStr;
     setSelectedDate(dateStr);
+    const yMonth = dateStr.substring(0, 7);
+    if (yMonth !== currentMonth) {
+      setCurrentMonth(yMonth);
+    }
   };
 
   const handleBackToMonth = (yearMonth: string) => {
@@ -131,6 +148,9 @@ export const App: React.FC = () => {
         <DayDetailView
           dateStr={selectedDate}
           monthlyData={monthlyData}
+          selectedMemberId={selectedMemberId}
+          onSelectMember={setSelectedMemberId}
+          onSelectDate={handleSelectDate}
           onBackToMonth={handleBackToMonth}
         />
       ) : (
@@ -138,6 +158,8 @@ export const App: React.FC = () => {
           currentMonth={currentMonth}
           data={monthlyData}
           loading={loading}
+          selectedMemberId={selectedMemberId}
+          onSelectMember={setSelectedMemberId}
           onSelectMonth={setCurrentMonth}
           onSelectDate={handleSelectDate}
         />

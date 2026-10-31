@@ -37,3 +37,21 @@ export function getAdjacentMonth(yearMonthStr: string, delta: number): string {
   const m = String(date.getMonth() + 1).padStart(2, '0');
   return `${y}-${m}`;
 }
+
+export function getAdjacentDate(dateStr: string, deltaDays: number): string {
+  const [yearStr, monthStr, dayStr] = dateStr.split('-');
+  const date = new Date(parseInt(yearStr, 10), parseInt(monthStr, 10) - 1, parseInt(dayStr, 10) + deltaDays);
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+export function formatDateWithWeekday(dateStr: string): string {
+  const [yearStr, monthStr, dayStr] = dateStr.split('-');
+  const date = new Date(parseInt(yearStr, 10), parseInt(monthStr, 10) - 1, parseInt(dayStr, 10));
+  const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
+  const w = weekdays[date.getDay()];
+  return `${parseInt(monthStr, 10)}月${parseInt(dayStr, 10)}日(${w})`;
+}
+

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Clock, Calendar, Smartphone, Info } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { ArrowLeft, Clock, Calendar, Smartphone, Info, ChevronLeft, ChevronRight, User as UserIcon } from 'lucide-react';
 import {
   BarChart,
   Bar,
@@ -11,11 +11,14 @@ import {
   CartesianGrid
 } from 'recharts';
 import { MonthlyData, DayUsage } from '../types';
-import { formatMinutes } from '../utils/format';
+import { formatMinutes, getAdjacentDate, formatDateWithWeekday } from '../utils/format';
 
 interface DayDetailViewProps {
   dateStr: string; // "YYYY-MM-DD"
   monthlyData: MonthlyData | null;
+  selectedMemberId: string | null;
+  onSelectMember: (memberId: string) => void;
+  onSelectDate: (dateStr: string) => void;
   onBackToMonth: (yearMonth: string) => void;
 }
 
@@ -28,6 +31,9 @@ const APP_COLORS = [
 export const DayDetailView: React.FC<DayDetailViewProps> = ({
   dateStr,
   monthlyData,
+  selectedMemberId,
+  onSelectMember,
+  onSelectDate,
   onBackToMonth,
 }) => {
   const [yearStr, monthStr, dayStr] = dateStr.split('-');
@@ -38,13 +44,27 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
   // メンバー一覧
   const members = monthlyData?.members ? Object.values(monthlyData.members) : [];
 
-  // 選択中のメンバータブ
-  const [selectedMemberId, setSelectedMemberId] = useState<string>(
-    members.length > 0 ? members[0].id : ''
-  );
-
+  // 現在アクティブなメンバー（指定がなければ先頭）
   const activeMember = members.find((m) => m.id === selectedMemberId) || members[0];
   const dayData: DayUsage | undefined = activeMember?.days?.[dayStr];
+
+  // 前日・翌日の日付
+  const prevDateStr = getAdjacentDate(dateStr, -1);
+  const nextDateStr = getAdjacentDate(dateStr, 1);
+
+  // キーボードの左右キーで前日・翌日に移動
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key === 'ArrowLeft') {
+        onSelectDate(prevDateStr);
+      } else if (e.key === 'ArrowRight') {
+        onSelectDate(nextDateStr);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [prevDateStr, nextDateStr, onSelectDate]);
 
   // 時間帯グラフ用のデータ成形
   // 00時〜23時の24スロット
@@ -82,54 +102,94 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
     <div className="max-w-6xl mx-auto px-4 py-8">
       {/* ナビゲーションバー */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => onBackToMonth(yearMonth)}
-              className="p-2.5 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors border border-slate-200"
-              title="カレンダーへ戻る"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div>
-              <div className="flex items-center gap-2">
-                {/* 日付の月をクリックするとトップページへ */}
-                <button
-                  onClick={() => onBackToMonth(yearMonth)}
-                  className="text-lg sm:text-xl font-bold text-indigo-600 hover:underline flex items-center gap-1"
-                  title={`${yearStr}年${monthNum}月のカレンダーに戻る`}
-                >
-                  <Calendar className="w-5 h-5" />
-                  {yearStr}年 {monthNum}月
-                </button>
-                <span className="text-xl sm:text-2xl font-bold text-slate-800">
-                  {dayNum}日 の利用状況
+        <div className="flex flex-col gap-5">
+          {/* 上段: 戻るリンク + 日付ナビゲーション（前日 / 翌日） */}
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => onBackToMonth(yearMonth)}
+                className="p-2.5 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors border border-slate-200 flex items-center gap-1.5 text-sm font-medium"
+                title="カレンダーへ戻る"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span className="hidden sm:inline">カレンダーへ戻る</span>
+              </button>
+
+              <button
+                onClick={() => onBackToMonth(yearMonth)}
+                className="text-base sm:text-lg font-bold text-indigo-600 hover:underline flex items-center gap-1"
+                title={`${yearStr}年${monthNum}月のカレンダーに戻る`}
+              >
+                <Calendar className="w-4 h-4" />
+                {yearStr}年 {monthNum}月
+              </button>
+            </div>
+
+            {/* 前日・翌日へのリンクボタン */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => onSelectDate(prevDateStr)}
+                className="flex items-center gap-1 px-3 py-2 text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-all border border-slate-200"
+                title={`前日 (${prevDateStr}) へ`}
+              >
+                <ChevronLeft className="w-4 h-4" />
+                <span>前日</span>
+                <span className="text-xs text-slate-400 font-normal hidden sm:inline">
+                  ({formatDateWithWeekday(prevDateStr)})
                 </span>
-              </div>
-              <p className="text-slate-500 text-xs sm:text-sm mt-0.5">
-                対象者の時間帯別アプリ利用量および内訳
-              </p>
+              </button>
+
+              <button
+                onClick={() => onSelectDate(nextDateStr)}
+                className="flex items-center gap-1 px-3 py-2 text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-all border border-slate-200"
+                title={`翌日 (${nextDateStr}) へ`}
+              >
+                <span className="text-xs text-slate-400 font-normal hidden sm:inline">
+                  ({formatDateWithWeekday(nextDateStr)})
+                </span>
+                <span>翌日</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
           </div>
 
-          {/* メンバー切り替えタブ */}
-          <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-xl border border-slate-200 self-start sm:self-auto">
-            {members.map((m) => {
-              const isSelected = (activeMember?.id || '') === m.id;
-              return (
-                <button
-                  key={m.id}
-                  onClick={() => setSelectedMemberId(m.id)}
-                  className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all ${
-                    isSelected
-                      ? 'bg-white text-indigo-600 shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  {m.name}
-                </button>
-              );
-            })}
+          {/* 下段: 日付タイトル & 人ごと切り替えタブ */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-3 border-t border-slate-100">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight">
+                {dayNum}日 の利用状況
+                <span className="text-sm font-medium text-slate-500 ml-3">
+                  ({formatDateWithWeekday(dateStr)})
+                </span>
+              </h1>
+              <p className="text-slate-500 text-xs sm:text-sm mt-1">
+                {activeMember?.name || '対象者'} の時間帯別アプリ利用量および内訳
+              </p>
+            </div>
+
+            {/* 人ごと切り替えタブ */}
+            <div className="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-xl border border-slate-200 self-start sm:self-auto">
+              <span className="text-xs font-semibold text-slate-500 px-2 flex items-center gap-1">
+                <UserIcon className="w-3.5 h-3.5" />
+                表示切替:
+              </span>
+              {members.map((m) => {
+                const isSelected = (activeMember?.id || '') === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => onSelectMember(m.id)}
+                    className={`px-3.5 py-1.5 text-sm font-semibold rounded-lg transition-all ${
+                      isSelected
+                        ? 'bg-white text-indigo-600 shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    {m.name}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
