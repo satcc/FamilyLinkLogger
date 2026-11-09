@@ -19,7 +19,15 @@ def deploy_to_firebase() -> bool:
     if not (DIST_DIR / "index.html").exists():
         print("  [Build] dist フォルダが存在しないため、初回ビルドを実行します...")
         cmd_build = "cmd /c npm run build" if sys.platform == "win32" else "npm run build"
-        res_build = subprocess.run(cmd_build, shell=True, cwd=str(BASE_DIR), capture_output=True, text=True)
+        res_build = subprocess.run(
+            cmd_build,
+            shell=True,
+            cwd=str(BASE_DIR),
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace"
+        )
         if res_build.returncode != 0:
             print(f"  [Build Error] ビルドに失敗しました:\n{res_build.stderr}")
             return False
@@ -45,6 +53,8 @@ def deploy_to_firebase() -> bool:
             cwd=str(BASE_DIR),
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=120
         )
         if res.returncode == 0:
